@@ -2,15 +2,32 @@
 /**
  * Controlador para alternar el estado de disponibilidad de un libro.
  *
- * Procesa solicitudes POST que contienen el ID del libro y su estado actual
- * (1 = Disponible, 0 = Prestado), invierte el valor lógico y actualiza
- * el registro correspondiente en la tabla `libros`.
+ * Procesa solicitudes POST con el ID del libro y su estado actual
+ * (1 = Disponible, 0 = Prestado) y actualiza el registro en MySQL.
  *
  * @package    BibliotecaKenny
  * @subpackage Controladores
- * @author     Kenny
+ * @author     Kenny <kenny@ejemplo.com>
  * @version    1.1.0
  */
+
+/**
+ * Calcula el nuevo estado lógico y actualiza la disponibilidad del libro.
+ *
+ * @param mysqli $conexion     Conexión activa a la base de datos.
+ * @param int    $id           Identificador único del libro.
+ * @param int    $estadoActual Estado actual (1 = Disponible, 0 = Prestado).
+ * @return bool True si el registro se actualizó correctamente, false si falló.
+ */
+function alternarEstadoLibro(mysqli $conexion, int $id, int $estadoActual): bool
+{
+    /** @var int $nuevoEstado Estado invertido tras la acción */
+    $nuevoEstado = ($estadoActual === 1) ? 0 : 1;
+
+    $sql = "UPDATE libros SET disponible = $nuevoEstado WHERE id = $id";
+
+    return $conexion->query($sql) === true;
+}
 
 if (
     $_SERVER["REQUEST_METHOD"] === "POST"
@@ -30,16 +47,10 @@ if (
 
     /** @var int $id Identificador único del libro */
     $id = intval($_POST['id']);
-    /** @var int $estadoActual Estado actual del libro (1 o 0) */
+    /** @var int $estadoActual Estado actual del libro */
     $estadoActual = intval($_POST['actual']);
 
-    /** @var int $nuevoEstado Estado invertido tras la acción */
-    $nuevoEstado = ($estadoActual === 1) ? 0 : 1;
-
-    /** @var string $sql Consulta SQL de actualización */
-    $sql = "UPDATE libros SET disponible = $nuevoEstado WHERE id = $id";
-
-    if ($conexion->query($sql) === true) {
+    if (alternarEstadoLibro($conexion, $id, $estadoActual)) {
         header("Location: index.php?updated=1");
         exit;
     } else {
